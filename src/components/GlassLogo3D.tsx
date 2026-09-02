@@ -12,11 +12,11 @@ function useGlowTexture() {
     const ctx = canvas.getContext("2d")!;
 
     const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, "rgba(70, 130, 220, 0.9)");
-    gradient.addColorStop(0.25, "rgba(40, 90, 180, 0.75)");
-    gradient.addColorStop(0.5, "rgba(20, 50, 120, 0.5)");
-    gradient.addColorStop(0.75, "rgba(10, 25, 70, 0.25)");
-    gradient.addColorStop(1, "rgba(5, 15, 40, 0)");
+    gradient.addColorStop(0, "rgba(100, 170, 255, 1)");
+    gradient.addColorStop(0.25, "rgba(70, 130, 240, 0.9)");
+    gradient.addColorStop(0.5, "rgba(40, 80, 200, 0.65)");
+    gradient.addColorStop(0.75, "rgba(20, 40, 120, 0.35)");
+    gradient.addColorStop(1, "rgba(8, 20, 60, 0)");
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
@@ -53,12 +53,12 @@ function SolidCube({
           clearcoat={0.25}
           clearcoatRoughness={0.45}
           attenuationColor="#0a1840"
-          attenuationDistance={1.8}
-          color="#2a5aaa"
+          attenuationDistance={2}
+          color="#3a70d0"
           transparent
-          opacity={0.7}
+          opacity={0.75}
           side={THREE.DoubleSide}
-          envMapIntensity={0.6}
+          envMapIntensity={0.8}
         />
       </RoundedBox>
 
@@ -141,10 +141,10 @@ export default function GlassLogo3D({ className = "" }: { className?: string }) 
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         className="pointer-events-none"
       >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[4, 6, 5]} intensity={0.8} color="#90b0e0" />
-        <directionalLight position={[-5, -2, -4]} intensity={0.3} color="#103080" />
-        <pointLight position={[0, 0, 4]} intensity={3} color="#3070d0" distance={10} />
+        <ambientLight intensity={0.7} />
+        <directionalLight position={[4, 6, 5]} intensity={1.2} color="#b0c8f0" />
+        <directionalLight position={[-5, -2, -4]} intensity={0.4} color="#2050b0" />
+        <pointLight position={[0, 0, 4]} intensity={4.5} color="#4080ff" distance={10} />
 
         <SolidCubesGroup />
       </Canvas>
