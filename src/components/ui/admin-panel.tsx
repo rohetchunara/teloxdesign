@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X,
@@ -16,74 +16,37 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import { SidebarNav } from './dashboard-sidebar';
-
-const mockData = {
-  stats: {
-    totalRevenue: 24680,
-    monthlyRevenue: 8420,
-    totalLeads: 156,
-    activeLeads: 24,
-    conversionRate: 3.2,
-    totalOrders: 48,
-    pendingOrders: 8,
-    totalVisitors: 12450,
-    uniqueVisitors: 8920,
-    bounceRate: 42,
-    avgSessionDuration: '2:34',
-  },
-  revenueData: [
-    { month: 'Jan', value: 4200 },
-    { month: 'Feb', value: 5800 },
-    { month: 'Mar', value: 4900 },
-    { month: 'Apr', value: 7200 },
-    { month: 'May', value: 6800 },
-    { month: 'Jun', value: 8420 },
-  ],
-  leads: [
-    { id: 1, name: 'Suman Shrestha', email: 'suman@example.com', source: 'Contact Form', status: 'New', date: '2026-09-01', type: 'Message' },
-    { id: 2, name: 'Priya Maharjan', email: 'priya@example.com', source: 'Checkout', status: 'Hot', date: '2026-08-31', type: 'Order' },
-    { id: 3, name: 'Rikesh Tamang', email: 'rikesh@example.com', source: 'Landing Page', status: 'Warm', date: '2026-08-30', type: 'Lead' },
-    { id: 4, name: 'Anita Gurung', email: 'anita@example.com', source: 'Referral', status: 'New', date: '2026-08-29', type: 'Message' },
-    { id: 5, name: 'Bikash KC', email: 'bikash@example.com', source: 'Checkout', status: 'Hot', date: '2026-08-28', type: 'Order' },
-    { id: 6, name: 'Nisha Rai', email: 'nisha@example.com', source: 'Contact Form', status: 'Warm', date: '2026-08-27', type: 'Lead' },
-  ],
-  orders: [
-    { id: 'ORD-001', client: 'Suman Shrestha', service: 'Web Development', amount: 2500, status: 'In Progress', date: '2026-09-01' },
-    { id: 'ORD-002', client: 'Priya Maharjan', service: 'SaaS Platform', amount: 4800, status: 'Pending', date: '2026-08-31' },
-    { id: 'ORD-003', client: 'Bikash KC', service: 'UI/UX Design', amount: 1800, status: 'Completed', date: '2026-08-28' },
-    { id: 'ORD-004', client: 'Rikesh Tamang', service: 'Branding', amount: 1200, status: 'In Progress', date: '2026-08-25' },
-  ],
-  trafficSources: [
-    { source: 'Organic Search', visitors: 4520, percentage: 36 },
-    { source: 'Direct', visitors: 3200, percentage: 26 },
-    { source: 'Social Media', visitors: 2850, percentage: 23 },
-    { source: 'Referral', visitors: 1880, percentage: 15 },
-  ],
-  projects: [
-    { id: 1, name: 'Crosus Nepal', client: 'Crosus Team', status: 'Live', progress: 100, type: 'E-Commerce' },
-    { id: 2, name: 'Nikon The Beats', client: 'Nikon Team', status: 'Live', progress: 100, type: 'Music Platform' },
-    { id: 3, name: 'Brand Identity', client: 'Local Client', status: 'In Progress', progress: 65, type: 'Branding' },
-    { id: 4, name: 'SaaS Dashboard', client: 'Startup', status: 'Development', progress: 40, type: 'Web App' },
-  ]
-};
+import {
+  getLeads,
+  getDailyStats,
+  getTotalStats,
+  getRevenueChartData,
+  getVisitorChartData,
+  getTrafficSources,
+  getTodayStats,
+  updateLeadStatus,
+  deleteLead,
+  clearAllData,
+  type Lead,
+  type DailyStats
+} from '@/lib/analytics';
 
 function MiniChart({ data, color = '#ffffff' }: { data: { month: string; value: number }[]; color?: string }) {
-  const max = Math.max(...data.map(d => d.value));
-  const min = Math.min(...data.map(d => d.value));
-  const range = max - min || 1;
+  const max = Math.max(...data.map(d => d.value), 1);
 
   return (
-    <div className="flex items-end gap-1 h-16">
+    <div className="flex items-end gap-1.5 h-20">
       {data.map((d, i) => {
-        const height = ((d.value - min) / range) * 100;
+        const height = (d.value / max) * 100;
         return (
           <div key={i} className="flex flex-col items-center gap-1 flex-1">
             <div
-              className="w-full rounded-t-sm transition-all duration-300"
-              style={{ height: `${Math.max(10, height)}%`, backgroundColor: color, opacity: 0.7 }}
+              className="w-full rounded-t-sm transition-all duration-300 min-h-[4px]"
+              style={{ height: `${Math.max(4, height)}%`, backgroundColor: color, opacity: 0.7 }}
             />
             <span className="text-[9px] text-white/40">{d.month}</span>
           </div>
@@ -113,192 +76,332 @@ function StatCard({ icon: Icon, label, value, change, positive }: { icon: any; l
 
 export function AdminPanel({ onClose }: { onClose: () => void }) {
   const [activeSection, setActiveSection] = useState('overview');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refreshData = () => {
+    setLeads(getLeads());
+    setDailyStats(getDailyStats());
+    setRefreshKey(k => k + 1);
+  };
+
+  useEffect(() => {
+    refreshData();
+    const interval = setInterval(refreshData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const totalStats = getTotalStats();
+  const todayStats = getTodayStats();
+  const revenueData = getRevenueChartData(7);
+  const visitorData = getVisitorChartData(7);
+  const trafficSources = getTrafficSources();
+
+  const handleStatusChange = (id: string, status: 'new' | 'hot' | 'warm') => {
+    updateLeadStatus(id, status);
+    refreshData();
+  };
+
+  const handleDeleteLead = (id: string) => {
+    deleteLead(id);
+    refreshData();
+  };
 
   const renderContent = () => {
     switch (activeSection) {
       case 'overview':
         return (
-          <div className="space-y-6">
+          <div className="space-y-6" key={refreshKey}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={DollarSign} label="Total Revenue" value={`$${mockData.stats.totalRevenue.toLocaleString()}`} change="+12.5%" positive />
-              <StatCard icon={UserCheck} label="Total Leads" value={mockData.stats.totalLeads} change="+8.3%" positive />
-              <StatCard icon={ShoppingCart} label="Orders" value={mockData.stats.totalOrders} change="+5.2%" positive />
-              <StatCard icon={Eye} label="Visitors" value={mockData.stats.totalVisitors.toLocaleString()} change="+15.7%" positive />
+              <StatCard icon={DollarSign} label="Total Revenue" value={`$${totalStats.totalRevenue.toLocaleString()}`} />
+              <StatCard icon={UserCheck} label="Total Leads" value={totalStats.totalLeads} />
+              <StatCard icon={ShoppingCart} label="Orders" value={totalStats.totalOrders} />
+              <StatCard icon={Eye} label="Total Visitors" value={totalStats.totalVisitors.toLocaleString()} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard icon={Mail} label="Messages" value={totalStats.totalMessages} />
+              <StatCard icon={Globe} label="Page Views" value={totalStats.totalPageViews.toLocaleString()} />
+              <StatCard icon={Activity} label="Bounce Rate" value={`${totalStats.bounceRate}%`} />
+              <StatCard icon={Clock} label="Today's Leads" value={todayStats.leads} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-                <h3 className="text-sm font-medium text-white mb-4">Revenue Trend</h3>
-                <MiniChart data={mockData.revenueData} />
+                <h3 className="text-sm font-medium text-white mb-4">Revenue (Last 7 Days)</h3>
+                <MiniChart data={revenueData} />
               </div>
               <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-                <h3 className="text-sm font-medium text-white mb-4">Traffic Sources</h3>
-                <div className="space-y-3">
-                  {mockData.trafficSources.map((src, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] text-white/70">{src.source}</span>
-                          <span className="text-[11px] text-white/50">{src.percentage}%</span>
-                        </div>
-                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                          <div className="h-full bg-white/60 rounded-full" style={{ width: `${src.percentage}%` }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="text-sm font-medium text-white mb-4">Visitors (Last 7 Days)</h3>
+                <MiniChart data={visitorData} color="#60a5fa" />
               </div>
             </div>
 
             <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-              <h3 className="text-sm font-medium text-white mb-4">Recent Activity</h3>
+              <h3 className="text-sm font-medium text-white mb-4">Traffic Sources</h3>
               <div className="space-y-3">
-                {mockData.leads.slice(0, 4).map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                        <span className="text-[11px] font-medium text-white">{lead.name.charAt(0)}</span>
+                {trafficSources.map((src, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-white/70">{src.source}</span>
+                        <span className="text-[11px] text-white/50">{src.visitors} ({src.percentage}%)</span>
                       </div>
-                      <div>
-                        <p className="text-[12px] text-white">{lead.name}</p>
-                        <p className="text-[10px] text-white/50">{lead.source}</p>
+                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-white/60 rounded-full transition-all" style={{ width: `${src.percentage}%` }} />
                       </div>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      lead.status === 'Hot' ? 'bg-red-500/20 text-red-400' :
-                      lead.status === 'Warm' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-blue-500/20 text-blue-400'
-                    }`}>{lead.status}</span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {leads.length > 0 && (
+              <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+                <h3 className="text-sm font-medium text-white mb-4">Recent Leads</h3>
+                <div className="space-y-3">
+                  {leads.slice(-5).reverse().map((lead) => (
+                    <div key={lead.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                          <span className="text-[11px] font-medium text-white">{lead.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <p className="text-[12px] text-white">{lead.name}</p>
+                          <p className="text-[10px] text-white/50">{lead.email}</p>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        lead.status === 'hot' ? 'bg-red-500/20 text-red-400' :
+                        lead.status === 'warm' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>{lead.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
 
       case 'leads':
         return (
-          <div className="space-y-4">
+          <div className="space-y-4" key={refreshKey}>
             <div className="grid grid-cols-3 gap-4">
-              <StatCard icon={UserCheck} label="New Leads" value={mockData.stats.activeLeads} />
-              <StatCard icon={MousePointerClick} label="Checkout Reaches" value={12} />
-              <StatCard icon={Mail} label="Messages" value={18} />
+              <StatCard icon={UserCheck} label="Total Leads" value={totalStats.totalLeads} />
+              <StatCard icon={MousePointerClick} label="New Today" value={todayStats.leads} />
+              <StatCard icon={Mail} label="Messages" value={totalStats.totalMessages} />
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left text-[11px] text-white/50 font-medium p-3">Name</th>
-                    <th className="text-left text-[11px] text-white/50 font-medium p-3">Source</th>
-                    <th className="text-left text-[11px] text-white/50 font-medium p-3">Type</th>
-                    <th className="text-left text-[11px] text-white/50 font-medium p-3">Status</th>
-                    <th className="text-left text-[11px] text-white/50 font-medium p-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockData.leads.map((lead) => (
-                    <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="p-3">
-                        <div>
-                          <p className="text-[12px] text-white">{lead.name}</p>
-                          <p className="text-[10px] text-white/40">{lead.email}</p>
-                        </div>
-                      </td>
-                      <td className="p-3 text-[12px] text-white/70">{lead.source}</td>
-                      <td className="p-3">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          lead.type === 'Order' ? 'bg-green-500/20 text-green-400' :
-                          lead.type === 'Message' ? 'bg-blue-500/20 text-blue-400' :
-                          'bg-purple-500/20 text-purple-400'
-                        }`}>{lead.type}</span>
-                      </td>
-                      <td className="p-3">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          lead.status === 'Hot' ? 'bg-red-500/20 text-red-400' :
-                          lead.status === 'Warm' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-blue-500/20 text-blue-400'
-                        }`}>{lead.status}</span>
-                      </td>
-                      <td className="p-3 text-[12px] text-white/50">{lead.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {leads.length === 0 ? (
+              <div className="p-12 rounded-xl bg-white/5 border border-white/10 text-center">
+                <Mail className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60 text-sm">No leads yet. They will appear here when someone submits the contact form.</p>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-white/5 border border-white/10 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Name</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Email</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Source</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Type</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Status</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Date</th>
+                        <th className="text-left text-[11px] text-white/50 font-medium p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leads.slice().reverse().map((lead) => (
+                        <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                          <td className="p-3">
+                            <p className="text-[12px] text-white">{lead.name}</p>
+                            {lead.phone && <p className="text-[10px] text-white/40">{lead.phone}</p>}
+                          </td>
+                          <td className="p-3 text-[12px] text-white/70">{lead.email}</td>
+                          <td className="p-3 text-[12px] text-white/70 capitalize">{lead.source.replace('_', ' ')}</td>
+                          <td className="p-3">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                              lead.type === 'order' ? 'bg-green-500/20 text-green-400' :
+                              lead.type === 'message' ? 'bg-blue-500/20 text-blue-400' :
+                              'bg-purple-500/20 text-purple-400'
+                            }`}>{lead.type}</span>
+                          </td>
+                          <td className="p-3">
+                            <select
+                              value={lead.status}
+                              onChange={(e) => handleStatusChange(lead.id, e.target.value as any)}
+                              className={`text-[10px] px-2 py-0.5 rounded-full bg-transparent border-0 ${
+                                lead.status === 'hot' ? 'text-red-400' :
+                                lead.status === 'warm' ? 'text-yellow-400' :
+                                'text-blue-400'
+                              }`}
+                            >
+                              <option value="new" className="bg-[#111]">New</option>
+                              <option value="warm" className="bg-[#111]">Warm</option>
+                              <option value="hot" className="bg-[#111]">Hot</option>
+                            </select>
+                          </td>
+                          <td className="p-3 text-[12px] text-white/50">{lead.date}</td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleDeleteLead(lead.id)}
+                              className="text-[10px] text-red-400 hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'analytics':
+        return (
+          <div className="space-y-6" key={refreshKey}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard icon={Eye} label="Total Visitors" value={totalStats.totalVisitors.toLocaleString()} />
+              <StatCard icon={Globe} label="Page Views" value={totalStats.totalPageViews.toLocaleString()} />
+              <StatCard icon={Activity} label="Bounce Rate" value={`${totalStats.bounceRate}%`} />
+              <StatCard icon={Clock} label="Today's Views" value={todayStats.pageViews} />
+            </div>
+            <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h3 className="text-sm font-medium text-white mb-4">Visitor Trend (Last 7 Days)</h3>
+              <div className="h-48 flex items-end gap-2">
+                {visitorData.map((d, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-t-sm bg-blue-400/50 hover:bg-blue-400/70 transition-colors min-h-[4px]"
+                      style={{ height: `${Math.max(5, (d.value / Math.max(...visitorData.map(x => x.value), 1)) * 100)}%` }}
+                    />
+                    <span className="text-[8px] text-white/30">{d.month}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h3 className="text-sm font-medium text-white mb-4">Traffic Sources</h3>
+              <div className="space-y-3">
+                {trafficSources.map((src, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] text-white/70">{src.source}</span>
+                        <span className="text-[11px] text-white/50">{src.visitors} visits ({src.percentage}%)</span>
+                      </div>
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-white/60 rounded-full transition-all" style={{ width: `${src.percentage}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );
 
       case 'orders':
         return (
-          <div className="space-y-4">
+          <div className="space-y-4" key={refreshKey}>
             <div className="grid grid-cols-3 gap-4">
-              <StatCard icon={ShoppingCart} label="Total Orders" value={mockData.stats.totalOrders} />
-              <StatCard icon={Clock} label="Pending" value={mockData.stats.pendingOrders} />
-              <StatCard icon={DollarSign} label="Avg. Order" value="$2,450" />
+              <StatCard icon={ShoppingCart} label="Total Orders" value={totalStats.totalOrders} />
+              <StatCard icon={DollarSign} label="Revenue" value={`$${totalStats.totalRevenue.toLocaleString()}`} />
+              <StatCard icon={Clock} label="Today's Orders" value={todayStats.orders} />
             </div>
-            <div className="space-y-3">
-              {mockData.orders.map((order) => (
-                <div key={order.id} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-                      <FolderKanban className="w-5 h-5 text-white/60" />
+            {leads.filter(l => l.type === 'order').length === 0 ? (
+              <div className="p-12 rounded-xl bg-white/5 border border-white/10 text-center">
+                <ShoppingCart className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60 text-sm">No orders yet. Orders will appear here when tracked.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {leads.filter(l => l.type === 'order').slice().reverse().map((order) => (
+                  <div key={order.id} className="p-4 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                        <ShoppingCart className="w-5 h-5 text-white/60" />
+                      </div>
+                      <div>
+                        <p className="text-[13px] text-white font-medium">{order.name}</p>
+                        <p className="text-[11px] text-white/50">{order.email} • {order.date}</p>
+                        {order.message && <p className="text-[10px] text-white/40 mt-1">{order.message}</p>}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[13px] text-white font-medium">{order.service}</p>
-                      <p className="text-[11px] text-white/50">{order.client} • {order.id}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[13px] text-white font-medium">${order.amount.toLocaleString()}</p>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      order.status === 'Completed' ? 'bg-green-500/20 text-green-400' :
-                      order.status === 'In Progress' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-yellow-500/20 text-yellow-400'
+                      order.status === 'hot' ? 'bg-red-500/20 text-red-400' :
+                      order.status === 'warm' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-blue-500/20 text-blue-400'
                     }`}>{order.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 'analytics':
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard icon={Eye} label="Total Visitors" value={mockData.stats.totalVisitors.toLocaleString()} change="+15.7%" positive />
-              <StatCard icon={UserCheck} label="Unique Visitors" value={mockData.stats.uniqueVisitors.toLocaleString()} change="+10.2%" positive />
-              <StatCard icon={Activity} label="Bounce Rate" value={`${mockData.stats.bounceRate}%`} change="-3.1%" positive />
-              <StatCard icon={Clock} label="Avg. Session" value={mockData.stats.avgSessionDuration} />
-            </div>
-            <div className="p-5 rounded-xl bg-white/5 border border-white/10">
-              <h3 className="text-sm font-medium text-white mb-4">Traffic Overview</h3>
-              <div className="h-48 flex items-end gap-2">
-                {[65, 45, 78, 92, 58, 84, 70, 95, 62, 88, 74, 90].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t-sm bg-white/40 hover:bg-white/60 transition-colors"
-                      style={{ height: `${h}%` }}
-                    />
-                    <span className="text-[8px] text-white/30">{i + 1}</span>
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+        );
+
+      case 'messages':
+        return (
+          <div className="space-y-4" key={refreshKey}>
+            <div className="grid grid-cols-2 gap-4">
+              <StatCard icon={Mail} label="Total Messages" value={totalStats.totalMessages} />
+              <StatCard icon={Clock} label="Today's Messages" value={todayStats.messages} />
             </div>
+            {leads.filter(l => l.type === 'message').length === 0 ? (
+              <div className="p-12 rounded-xl bg-white/5 border border-white/10 text-center">
+                <Mail className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <p className="text-white/60 text-sm">No messages yet. Messages will appear here when someone submits the contact form.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {leads.filter(l => l.type === 'message').slice().reverse().map((msg) => (
+                  <div key={msg.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                          <span className="text-[11px] font-medium text-white">{msg.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <p className="text-[12px] text-white font-medium">{msg.name}</p>
+                          <p className="text-[10px] text-white/50">{msg.email}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-white/40">{msg.date}</span>
+                    </div>
+                    {msg.message && (
+                      <p className="text-[12px] text-white/70 mt-2 pl-11">{msg.message}</p>
+                    )}
+                    {msg.phone && (
+                      <p className="text-[10px] text-white/40 mt-1 pl-11">Phone: {msg.phone}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
 
       case 'projects':
         return (
-          <div className="space-y-4">
+          <div className="space-y-4" key={refreshKey}>
             <div className="grid grid-cols-2 gap-4">
-              <StatCard icon={FolderKanban} label="Total Projects" value={mockData.projects.length} />
-              <StatCard icon={Globe} label="Live Projects" value={mockData.projects.filter(p => p.status === 'Live').length} />
+              <StatCard icon={FolderKanban} label="Total Projects" value={4} />
+              <StatCard icon={Globe} label="Live Projects" value={2} />
             </div>
             <div className="space-y-3">
-              {mockData.projects.map((project) => (
-                <div key={project.id} className="p-4 rounded-xl bg-white/5 border border-white/10">
+              {[
+                { name: 'Crosus Nepal', client: 'Crosus Team', status: 'Live', progress: 100, type: 'E-Commerce' },
+                { name: 'Nikon The Beats', client: 'Nikon Team', status: 'Live', progress: 100, type: 'Music Platform' },
+                { name: 'Brand Identity', client: 'Local Client', status: 'In Progress', progress: 65, type: 'Branding' },
+                { name: 'SaaS Dashboard', client: 'Startup', status: 'Development', progress: 40, type: 'Web App' },
+              ].map((project, i) => (
+                <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/10">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-[13px] text-white font-medium">{project.name}</p>
@@ -343,13 +446,25 @@ export function AdminPanel({ onClose }: { onClose: () => void }) {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#0a0a0a] shrink-0">
-          <h1 className="text-lg font-display font-semibold text-white">Admin Dashboard</h1>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-display font-semibold text-white">Admin Dashboard</h1>
+            <button
+              onClick={refreshData}
+              className="p-1.5 rounded-md hover:bg-white/5 text-white/60 hover:text-white transition-colors"
+              title="Refresh data"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-white/40 hidden sm:block">Auto-refreshes every 5s</span>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-white/5 text-white/60 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
@@ -378,9 +493,7 @@ export function AdminAccessButton() {
   };
 
   if (authenticated) {
-    return (
-      <AdminPanel onClose={() => setAuthenticated(false)} />
-    );
+    return <AdminPanel onClose={() => setAuthenticated(false)} />;
   }
 
   return (

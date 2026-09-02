@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "motion/react";
+import { trackLead } from "@/lib/analytics";
 
 type FormStatus = 'idle' | 'submitting' | 'success';
 
@@ -17,6 +18,21 @@ export default function GetInTouchSection() {
     setStatus('submitting');
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
+
+    const name = data.get('name') as string;
+    const email = data.get('email') as string;
+    const phone = data.get('phone') as string;
+    const message = data.get('message') as string;
+
+    trackLead({
+      name,
+      email,
+      phone,
+      message,
+      source: 'contact_form',
+      type: 'message',
+    });
+
     fetch("https://formspree.io/f/meaqaano", {
       method: "POST",
       body: data,

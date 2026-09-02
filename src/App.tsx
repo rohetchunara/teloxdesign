@@ -13,11 +13,13 @@ import { CrosusCaseStudy } from '@/pages/crosus-case-study';
 import { NikonTheBeatsCaseStudy } from '@/pages/nikon-the-beats-case-study';
 import { CustomCursor } from '@/components/CustomCursor';
 import { useAdminShortcut, AdminAccessButton } from '@/components/ui/admin-panel';
+import { trackPageView } from '@/lib/analytics';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
+    trackPageView(pathname);
   }, [pathname]);
   return null;
 }
