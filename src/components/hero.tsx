@@ -306,10 +306,14 @@ function HoldToWarpButton({ onWarp }: { onWarp: () => void }) {
 
 export function Hero() {
   const [showUniverse, setShowUniverse] = useState(false);
-  const [showHeroText, setShowHeroText] = useState(false);
+  const [showHeroText, setShowHeroText] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  });
   const hoverTimerRef = useRef<number | null>(null);
 
   const handleLogoHover = () => {
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
     setShowHeroText(true);
     if (hoverTimerRef.current !== null) {
       clearTimeout(hoverTimerRef.current);
@@ -324,6 +328,7 @@ export function Hero() {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
     setShowHeroText(false);
   };
 
