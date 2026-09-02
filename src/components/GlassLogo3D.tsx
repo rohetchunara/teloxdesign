@@ -48,12 +48,12 @@ function useGlowTexture() {
       size / 2,
       size / 2
     );
-    gradient.addColorStop(0, "rgba(100, 180, 255, 1)");
-    gradient.addColorStop(0.15, "rgba(60, 140, 240, 0.95)");
-    gradient.addColorStop(0.35, "rgba(30, 90, 200, 0.8)");
-    gradient.addColorStop(0.55, "rgba(15, 50, 150, 0.6)");
-    gradient.addColorStop(0.75, "rgba(8, 30, 100, 0.4)");
-    gradient.addColorStop(1, "rgba(2, 10, 50, 0)");
+    gradient.addColorStop(0, "rgba(90, 160, 240, 0.85)");
+    gradient.addColorStop(0.15, "rgba(50, 120, 220, 0.75)");
+    gradient.addColorStop(0.35, "rgba(25, 70, 170, 0.6)");
+    gradient.addColorStop(0.55, "rgba(12, 40, 120, 0.4)");
+    gradient.addColorStop(0.75, "rgba(6, 20, 80, 0.25)");
+    gradient.addColorStop(1, "rgba(2, 10, 40, 0)");
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
@@ -85,27 +85,27 @@ function GlassCube({
       {/* Frosted glassmorphism shell */}
       <RoundedBox args={[size, size, size]} radius={size * 0.12} smoothness={4}>
         <meshPhysicalMaterial
-          roughness={0.1}
-          thickness={size * 0.5}
-          ior={1.35}
-          clearcoat={1}
-          clearcoatRoughness={0.08}
-          attenuationColor="#051840"
-          attenuationDistance={0.8}
-          color="#4080e0"
+          roughness={0.35}
+          thickness={size * 0.6}
+          ior={1.25}
+          clearcoat={0.4}
+          clearcoatRoughness={0.35}
+          attenuationColor="#0a2050"
+          attenuationDistance={1.2}
+          color="#5090d0"
           transparent
-          opacity={0.75}
+          opacity={0.55}
           side={THREE.DoubleSide}
-          envMapIntensity={2}
+          envMapIntensity={0.8}
         />
       </RoundedBox>
 
       {/* Edge shadow overlay for depth */}
       <RoundedBox args={[size * 1.02, size * 1.02, size * 1.02]} radius={size * 0.12} smoothness={4}>
         <meshBasicMaterial
-          color="#020820"
+          color="#030818"
           transparent
-          opacity={0.25}
+          opacity={0.2}
           side={THREE.BackSide}
         />
       </RoundedBox>
@@ -216,11 +216,11 @@ export default function GlassLogo3D({ className = "" }: GlassLogo3DProps) {
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         className="pointer-events-none"
       >
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[4, 6, 5]} intensity={1.2} color="#d0e8ff" />
-        <directionalLight position={[-5, -2, -4]} intensity={0.4} color="#2060b0" />
-        <pointLight position={[0, 0, 3]} intensity={5} color="#4090ff" distance={8} />
-        <pointLight position={[2, 2, 2]} intensity={2} color="#80c0ff" distance={6} />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[4, 6, 5]} intensity={0.9} color="#c0d8f0" />
+        <directionalLight position={[-5, -2, -4]} intensity={0.3} color="#1850a0" />
+        <pointLight position={[0, 0, 3]} intensity={3.5} color="#3080e0" distance={8} />
+        <pointLight position={[2, 2, 2]} intensity={1.5} color="#6090d0" distance={6} />
 
         <CubesGroup />
       </Canvas>
