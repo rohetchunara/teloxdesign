@@ -200,6 +200,7 @@ function KineticGrid({ children }: { children?: ReactNode }) {
 
     const onClick = (e: MouseEvent) => {
       triggerRipple(e.clientX, e.clientY);
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'CANVAS' || target.classList.contains('hero-empty-space'))) {
         window.dispatchEvent(new Event('open-telox-nav'));
@@ -210,10 +211,6 @@ function KineticGrid({ children }: { children?: ReactNode }) {
       if (e.changedTouches.length > 0) {
         const touch = e.changedTouches[0];
         triggerRipple(touch.clientX, touch.clientY);
-        const target = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement;
-        if (target && (target.tagName === 'CANVAS' || target.classList.contains('hero-empty-space'))) {
-          window.dispatchEvent(new Event('open-telox-nav'));
-        }
       }
     };
 
