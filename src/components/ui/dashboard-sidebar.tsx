@@ -223,21 +223,37 @@ export function SidebarNav({
   activeId,
   onSelect,
   activeWorkspace,
-  onWorkspaceSelect
+  onWorkspaceSelect,
+  onClose
 }: {
   className?: string;
   activeId?: string;
   onSelect?: (id: string) => void;
   activeWorkspace?: string;
   onWorkspaceSelect?: (ws: string) => void;
+  onClose?: () => void;
 }) {
   const [internalId, setInternalId] = useState('overview');
   const currentId = activeId !== undefined ? activeId : internalId;
-  const handleSelect = onSelect || setInternalId;
+  const handleSelect = (id: string) => {
+    if (onSelect) onSelect(id);
+    else setInternalId(id);
+    if (onClose && window.innerWidth < 768) onClose();
+  };
 
   return (
-    <div className={`flex flex-col w-[260px] h-full bg-[#0a0a0a] border-r border-white/10 p-3 font-sans ${className}`}>
-      <WorkspaceSwitcher selected={activeWorkspace} onSelect={onWorkspaceSelect} />
+    <div className={`flex flex-col w-full md:w-[260px] h-full bg-[#0a0a0a] md:border-r border-white/10 p-3 font-sans ${className}`}>
+      <div className="flex items-center justify-between md:block">
+        <WorkspaceSwitcher selected={activeWorkspace} onSelect={onWorkspaceSelect} />
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden p-2 text-white/60 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-4 mt-2">
         {mockNavGroups.map((group, idx) => (
