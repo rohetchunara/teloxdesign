@@ -48,11 +48,11 @@ function useGlowTexture() {
       size / 2,
       size / 2
     );
-    gradient.addColorStop(0, "rgba(94, 184, 255, 0.9)");
-    gradient.addColorStop(0.25, "rgba(47, 143, 230, 0.7)");
-    gradient.addColorStop(0.55, "rgba(20, 74, 140, 0.4)");
-    gradient.addColorStop(0.8, "rgba(10, 31, 61, 0.15)");
-    gradient.addColorStop(1, "rgba(3, 6, 13, 0)");
+    gradient.addColorStop(0, "rgba(120, 200, 255, 1)");
+    gradient.addColorStop(0.2, "rgba(60, 160, 255, 0.9)");
+    gradient.addColorStop(0.5, "rgba(30, 100, 200, 0.6)");
+    gradient.addColorStop(0.75, "rgba(10, 50, 120, 0.3)");
+    gradient.addColorStop(1, "rgba(5, 20, 60, 0)");
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, size, size);
@@ -78,22 +78,22 @@ function GlassCube({
       {/* Inner glow, visible through the frosted glass */}
       <mesh position={[0, 0, size * 0.02]}>
         <planeGeometry args={[size * 0.94, size * 0.94]} />
-        <meshBasicMaterial map={glowTexture} toneMapped={false} transparent opacity={0.95} />
+        <meshBasicMaterial map={glowTexture} toneMapped={false} transparent opacity={1} />
       </mesh>
 
       {/* Frosted glassmorphism shell */}
       <RoundedBox args={[size, size, size]} radius={size * 0.12} smoothness={4}>
         <meshPhysicalMaterial
-          roughness={0.25}
+          roughness={0.15}
           thickness={size * 0.3}
-          ior={1.1}
-          clearcoat={0.6}
-          clearcoatRoughness={0.25}
-          attenuationColor="#1b3a6b"
-          attenuationDistance={2}
-          color="#8fb8ff"
+          ior={1.2}
+          clearcoat={0.8}
+          clearcoatRoughness={0.15}
+          attenuationColor="#0a2a5e"
+          attenuationDistance={1.5}
+          color="#a0d0ff"
           transparent
-          opacity={0.5}
+          opacity={0.6}
           side={THREE.DoubleSide}
         />
       </RoundedBox>
@@ -204,10 +204,11 @@ export default function GlassLogo3D({ className = "" }: GlassLogo3DProps) {
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         className="pointer-events-none"
       >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[4, 6, 5]} intensity={0.8} color="#bcd9ff" />
-        <directionalLight position={[-5, -2, -4]} intensity={0.25} color="#1c4d8f" />
-        <pointLight position={[0, 0, 3]} intensity={3} color="#2f7fe0" distance={8} />
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[4, 6, 5]} intensity={1.2} color="#d0e8ff" />
+        <directionalLight position={[-5, -2, -4]} intensity={0.4} color="#2060b0" />
+        <pointLight position={[0, 0, 3]} intensity={5} color="#4090ff" distance={8} />
+        <pointLight position={[2, 2, 2]} intensity={2} color="#80c0ff" distance={6} />
 
         <CubesGroup />
       </Canvas>
