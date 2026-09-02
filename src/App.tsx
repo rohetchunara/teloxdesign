@@ -12,6 +12,7 @@ import Demo from '@/pages/demo';
 import { CrosusCaseStudy } from '@/pages/crosus-case-study';
 import { NikonTheBeatsCaseStudy } from '@/pages/nikon-the-beats-case-study';
 import { CustomCursor } from '@/components/CustomCursor';
+import { useAdminShortcut, AdminAccessButton } from '@/components/ui/admin-panel';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -51,11 +52,15 @@ function Layout() {
 }
 
 function App() {
+  const { AdminUI } = useAdminShortcut();
+
   return (
     <BrowserRouter>
       <ScrollToTop />
       <CustomCursor />
       <Layout />
+      {AdminUI}
+      <AdminAccessButton />
     </BrowserRouter>
   );
 }
